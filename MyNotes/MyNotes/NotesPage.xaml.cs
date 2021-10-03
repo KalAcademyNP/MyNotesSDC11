@@ -1,38 +1,57 @@
-﻿using System;
+﻿using MyNotes.Models;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 using Xamarin.Forms;
-using Xamarin.Forms.Xaml;
 
 namespace MyNotes
 {
-    [XamlCompilation(XamlCompilationOptions.Compile)]
+    // Learn more about making custom code visible in the Xamarin.Forms previewer
+    // by visiting https://aka.ms/xamarinforms-previewer
+    [DesignTimeVisible(false)]
     public partial class NotesPage : ContentPage
     {
-        string fileName = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
-            "notes.txt");
         public NotesPage()
         {
             InitializeComponent();
-            if (File.Exists(fileName))
+        }
+
+        protected override void OnAppearing()
+        {
+            var notes = new List<Note>();
+            var files = Directory.EnumerateFiles(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "*.notes.txt");
+            foreach (var filename in files)
             {
-                editor.Text = File.ReadAllText(fileName);
+                var note = new Note
+                {
+                    Text = File.ReadAllText(filename),
+                    Date = File.GetCreationTime(filename),
+                    FileName = filename
+                };
+                notes.Add(note);
             }
+            NotesListView.ItemsSource = notes;
         }
 
-        private void OnSaveButtonClicked(object sender, EventArgs e)
+        private async void OnNoteAddedClicked(object sender, EventArgs e)
         {
-
+            await Navigation.PushModalAsync(new AddNotePage
+            {
+                BindingContext = new Note()
+            });
         }
 
-        private void OnDeleteButtonClicked(object sender, EventArgs e)
+        private async void NotesListView_ItemSelected(object sender, SelectedItemChangedEventArgs e)
         {
-
+            await Navigation.PushModalAsync(new AddNotePage
+            {
+                BindingContext = (Note)e.SelectedItem
+            });
         }
     }
 }
